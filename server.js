@@ -2,6 +2,14 @@ const cTable = require('console.table');
 const figlet = require('figlet');
 const inquirer = require('inquirer')
 const mysql = require('mysql2')
+const db = require('./db/connection')
+
+db.connect(err => {
+    if (err) throw err;
+    console.log('Database connected');
+    welcome();
+    promptUser();
+})
 
 const promptUser = () => {
     return inquirer.prompt([
@@ -70,7 +78,6 @@ const addDepartment = () => {
             message:"What is the name of the department you would like to add?",
             validate: answer => {
                 if (answer) {
-                    console.log(`\nThank you. I'll be sure to add the ${answer} Department to your database.`)
                     return true;
                 }
                 console.log("\nPlease provide the name of the department you would like to add.")
@@ -78,6 +85,10 @@ const addDepartment = () => {
             }
         }
     ])
+    .then(input => {
+        console.log(`\nThank you. I'll be sure to add the ${input.department} Department to your database.`)
+        promptUser();
+    })
 }
 
 const addRole = () => {
@@ -88,7 +99,6 @@ const addRole = () => {
             message:"What is the role you would like to add?",
             validate: answer => {
                 if (answer) {
-                    console.log(`\nThank you. I'll be sure to add the ${answer} Role to your database.`)
                     return true;
                 }
                 console.log("\nPlease provide the name of the role you would like to add.")
@@ -96,24 +106,57 @@ const addRole = () => {
             }
         }
     ])
+    .then(input => {
+        console.log(`\nThank you. I'll be sure to add the ${input.role} Role to your database.`)
+        promptUser();
+    })
 }
 
 const addEmployee = () => {
     return inquirer.prompt([
         {
             type:'input',
-            name:'department',
-            message:"What is the name of the employee you would like to add?",
+            name:'empFirstName',
+            message:"What is the first name of the employee you would like to add?",
             validate: answer => {
                 if (answer) {
-                    console.log(`\nThank you. I'll be sure to add ${answer} to your database.`)
                     return true;
                 }
                 console.log("\nPlease provide the name of the employee you would like to add.")
                 return false;
             }
+        },
+        {
+            type:'input',
+            name:'empLastName',
+            message:"What is the last name of the employee you would like to add?",
+            validate: answer => {
+                if (answer) {
+                    return true;
+                }
+                console.log("\nPlease provide the employee's last name. ")
+            }
         }
     ])
+    .then(input => {
+        console.log(`${input.empFirstName} ${input.empLastName} will be added to the database.`);
+        promptUser();
+    })
 }
 
-promptUser();
+function welcome() {
+    const welcome = figlet.text('Welcome to Your Employee Database', {
+        font:'Standard',
+        horizontalLayout:'fitted',
+        verticalLayout:'fitted',
+        width: 70,
+        whitespaceBreak: true
+    }, function (err, data) {
+        if (err) {
+            console.log('Something went wrong...');
+            console.dir(err);
+            return;
+        }
+        console.log(data);
+    })
+}
