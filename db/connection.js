@@ -11,7 +11,7 @@ const db = mysql.createConnection(
         user: user,
         // MySQL password
         password: pw,
-        database:'election'
+        database:'company_db'
     }
 );
 

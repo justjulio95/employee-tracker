@@ -7,7 +7,6 @@ const db = require('./db/connection')
 db.connect(err => {
     if (err) throw err;
     console.log('Database connected');
-    welcome();
     promptUser();
 })
 
@@ -59,15 +58,49 @@ const promptUser = () => {
 }
 
 function displayAllDepartments() {
-    console.log("Below are the listed departments")
+    console.log("Below are the listed departments...\n")
+    db.query(`SELECT * FROM departments`, (err, result) => {
+        if (err) {
+            console.log(err)
+        }
+        console.table(result)
+        promptUser();
+    })
 }
 
 function displayAllRoles() {
-    console.log("Below are the listed roles")
+    console.log("Below are the listed roles\n")
+    
+    const sql = `SELECT roles.title AS job_title, roles.id AS id, departments.name AS department, 
+    roles.salary AS salary FROM roles JOIN departments ON departments.id = roles.department_id`
+
+    db.query(sql, (err, result) => {
+        if (err) {
+            console.log(err)
+        }
+        console.table(result);
+        promptUser();
+    })
 }
 
 function displayAllEmployees() {
     console.log("Below are the listed employees")
+    const sql = `SELECT e.id AS employee_id, e.last_name AS last_name,
+    e.first_name AS first_name,roles.title AS job_title, departments.name AS department,
+    roles.salary AS salary, CONCAT(m.first_name, " ", m.last_name) AS manager
+    FROM employees e
+    JOIN roles ON roles.id = e.role_id
+    JOIN departments ON departments.id = roles.department_id
+    LEFT JOIN employees m ON m.id = e.manager_id
+    ORDER BY e.id;`
+
+    db.query(sql, (err, result) => {
+        if (err) {
+            console.log(err)
+        }
+        console.table(result);
+        promptUser();
+    })
 }
 
 const addDepartment = () => {
@@ -86,66 +119,162 @@ const addDepartment = () => {
         }
     ])
     .then(input => {
-        console.log(`\nThank you. I'll be sure to add the ${input.department} Department to your database.`)
-        promptUser();
+        const sql = `INSERT INTO departments (name) VALUES(?)`;
+        const param = [input.department];
+        
+        db.query(sql, param, (err, result) => {
+            if (err){
+                console.log(err)
+            }
+            console.log(`\nThank you. I'll be sure to add the ${input.department} Department to your database.`)
+            promptUser();
+        })
     })
 }
 
 const addRole = () => {
-    return inquirer.prompt([
-        {
-            type:'input',
-            name:'role',
-            message:"What is the role you would like to add?",
-            validate: answer => {
-                if (answer) {
-                    return true;
+    return db.promise().query(
+        `SELECT departments.id, departments.name FROM departments`
+    )
+    .then(([departments]) => {
+        let departmentChoices = departments.map(({
+            id,
+            name
+        }) => ({
+            name:name,
+            value:id
+        }))
+
+        inquirer.prompt([
+            {
+                type:'input',
+                name:'role',
+                message:"What is the role you would like to add?",
+                validate: answer => {
+                    if (answer) {
+                        return true;
+                    }
+                    console.log("\nPlease provide the name of the role you would like to add.")
+                    return false;
                 }
-                console.log("\nPlease provide the name of the role you would like to add.")
-                return false;
+            },
+            {
+                type:'list',
+                name:'department',
+                message:'What department does this role belong in?',
+                choices: departmentChoices
+            },
+            {
+                type:'input',
+                name:'salary',
+                message: 'What is the salary for this role?',
+                validate: answer => {
+                    if (answer) {
+                        return true;
+                    }
+                    console.log("\nPlease provide the salary for this position")
+                    return false;
+                }
             }
-        }
-    ])
-    .then(input => {
-        console.log(`\nThank you. I'll be sure to add the ${input.role} Role to your database.`)
-        promptUser();
+        ])
+        .then(({role, department, salary}) => {
+            db.promise().query(
+                `INSERT INTO roles (title, salary, department_id) 
+                VALUES (?,?,?)`,
+                [role, salary, department], 
+                (err, result) => {
+                    if (err) {
+                        console.log(err)
+                    }
+                }
+            )
+            console.log("Thank you. I'll add the new role to the database")
+            promptUser();
+        })
     })
 }
 
 const addEmployee = () => {
-    return inquirer.prompt([
-        {
-            type:'input',
-            name:'empFirstName',
-            message:"What is the first name of the employee you would like to add?",
-            validate: answer => {
-                if (answer) {
-                    return true;
+    return db.promise().query(
+        `SELECT roles.id, roles.title FROM roles`
+    )
+    .then(([roles]) => {
+        let roleChoices = roles.map(({
+            id,
+            title
+        }) => ({
+            name:title,
+            value:id
+        }))
+
+        db.promise().query(
+            `SELECT E.id, CONCAT(E.first_name, ' ', E.last_name) AS manager FROM employees E`
+        )
+        .then(([manager]) => {
+            let managerChoices = manager.map(({
+                id,
+                manager
+            }) => ({
+                name:manager,
+                value:id
+            }))
+
+            inquirer.prompt([
+                {
+                    type:'input',
+                    name:'empFirst',
+                    message:'What is the first name of the employee you would like to add?',
+                    validate: answer => {
+                        if (answer) {
+                            return true;
+                        }
+                        console.log("\nPlease provide the employee's first name")
+                    }
+                },
+                {
+                    type:'input',
+                    name:'empLast',
+                    message:'What is the last name of the employee you would like to add?',
+                    validate: answer => {
+                        if (answer) {
+                            return true;
+                        }
+                        console.log("\nPlease provide the employee's last name")
+                    }
+                },
+                {
+                    type:'list',
+                    name:'role_title',
+                    message:'What role is the employee taking?',
+                    choices:roleChoices
+                },
+                {
+                    type:'list',
+                    name:'manager',
+                    message:"Who will be this new employee's manager?",
+                    choices:managerChoices
                 }
-                console.log("\nPlease provide the name of the employee you would like to add.")
-                return false;
-            }
-        },
-        {
-            type:'input',
-            name:'empLastName',
-            message:"What is the last name of the employee you would like to add?",
-            validate: answer => {
-                if (answer) {
-                    return true;
-                }
-                console.log("\nPlease provide the employee's last name. ")
-            }
-        }
-    ])
-    .then(input => {
-        console.log(`${input.empFirstName} ${input.empLastName} will be added to the database.`);
-        promptUser();
+            ])
+            .then(({empFirst, empLast, role_title, manager}) => {
+                db.promise().query(
+                    `INSERT INTO employees (first_name, last_name, role_id, manager_id) 
+                    VALUES (?,?,?,?)`,
+                    [empFirst, empLast, role_title, manager],
+                    (err, result) => {
+                        if (err) {
+                            console.log(err)
+                        }
+                    }
+                )
+                console.log(`I have successfully added ${empFirst} ${empLast} to the database`);
+                promptUser();
+            })
+        })
     })
 }
 
-function welcome() {
-    const welcome = figlet.text('Welcome to Your Employee Database', {
+/*function welcome() {
+    figlet.text('Welcome to Your Employee Database', {
         font:'Standard',
         horizontalLayout:'fitted',
         verticalLayout:'fitted',
@@ -159,4 +288,4 @@ function welcome() {
         }
         console.log(data);
     })
-}
+}*/
