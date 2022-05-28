@@ -273,6 +273,62 @@ const addEmployee = () => {
     })
 }
 
+const updateEmployee = () => {
+    return db.promise().query(
+        `SELECT E.id, CONCAT(E.first_name, ' ', E.last_name) AS employee FROM employees E`
+    )
+    .then(([employees]) => {
+        let employeeList = employees.map(({
+            id,
+            employee
+        }) => ({
+            value:id,
+            name:employee
+        }))
+
+        db.promise().query(
+            `SELECT roles.id, roles.title FROM roles`
+        )
+        .then(([roles]) => {
+            let rolesList = roles.map(({
+                id,
+                title
+            }) => ({
+                value:id,
+                name:title
+            }))
+
+            inquirer.prompt([
+                {
+                    type:'list',
+                    name:'employee',
+                    message:'Which employee would you like to update?',
+                    choices:employeeList
+                },
+                {
+                    type:'list',
+                    name:'updatedRole',
+                    message:'What role will they be taking?',
+                    choices:rolesList
+                }
+            ])
+            .then(({employee, updatedRole}) => {
+                db.promise().query(
+                    `UPDATE employees SET role_id = ?
+                    WHERE id = ?`,
+                    [updatedRole, employee], 
+                    (err, result) => {
+                        if (err) {
+                            console.log(err)
+                        }
+                    }
+                )
+                console.log('Successfully updated')
+                promptUser();
+            })
+        })
+    })
+}
 /*function welcome() {
     figlet.text('Welcome to Your Employee Database', {
         font:'Standard',
@@ -289,3 +345,5 @@ const addEmployee = () => {
         console.log(data);
     })
 }*/
+
+module.exports = {promptUser:promptUser}
