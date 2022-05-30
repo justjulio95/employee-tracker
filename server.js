@@ -1,12 +1,11 @@
 const cTable = require('console.table');
-const figlet = require('figlet');
 const inquirer = require('inquirer')
-const mysql = require('mysql2')
 const db = require('./db/connection')
 
 db.connect(err => {
     if (err) throw err;
     console.log('Database connected');
+    console.log('\nWelcome to Your Employee Database')
     promptUser();
 })
 
@@ -24,31 +23,24 @@ const promptUser = () => {
     .then(userChoice => {
         switch(userChoice.objective) {
             case 'view all departments':
-                console.log('displaying all departments');
                 displayAllDepartments()
                 break;
             case 'view all roles':
-                console.log('displaying all roles');
                 displayAllRoles();
                 break;
             case 'view all employees':
-                console.log('displaying all employees');
                 displayAllEmployees();
                 break;
             case 'add a department':
-                console.log("Let's add a department");
                 addDepartment();
                 break;
             case 'add a role':
-                console.log("Let's add a role");
                 addRole();
                 break
             case 'add an employee':
-                console.log("Let's add an employee");
                 addEmployee()
                 break;
             case 'update an employee role':
-                console.log("Let's update an employee's role");
                 updateEmployee()
                 break;
             case 'exit':
@@ -58,7 +50,7 @@ const promptUser = () => {
 }
 
 function displayAllDepartments() {
-    console.log("Below are the listed departments...\n")
+    console.log("\nBelow are the listed departments...\n")
     db.query(`SELECT * FROM departments`, (err, result) => {
         if (err) {
             console.log(err)
@@ -69,7 +61,7 @@ function displayAllDepartments() {
 }
 
 function displayAllRoles() {
-    console.log("Below are the listed roles\n")
+    console.log("Below are the listed roles...\n")
     
     const sql = `SELECT roles.title AS job_title, roles.id AS id, departments.name AS department, 
     roles.salary AS salary FROM roles JOIN departments ON departments.id = roles.department_id`
@@ -84,7 +76,7 @@ function displayAllRoles() {
 }
 
 function displayAllEmployees() {
-    console.log("Below are the listed employees")
+    console.log("Below are the listed employees...\n")
     const sql = `SELECT e.id AS employee_id, e.last_name AS last_name,
     e.first_name AS first_name,roles.title AS job_title, departments.name AS department,
     roles.salary AS salary, CONCAT(m.first_name, " ", m.last_name) AS manager
@@ -329,21 +321,3 @@ const updateEmployee = () => {
         })
     })
 }
-/*function welcome() {
-    figlet.text('Welcome to Your Employee Database', {
-        font:'Standard',
-        horizontalLayout:'fitted',
-        verticalLayout:'fitted',
-        width: 70,
-        whitespaceBreak: true
-    }, function (err, data) {
-        if (err) {
-            console.log('Something went wrong...');
-            console.dir(err);
-            return;
-        }
-        console.log(data);
-    })
-}*/
-
-module.exports = {promptUser:promptUser}
