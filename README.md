@@ -18,7 +18,15 @@ To install the necessary dependencies please run the following command:
 `npm i`
 
 ## Usage
-This project is to be used at ones leisure.
+To use this application after installing the dependencies:
+
+- add a config/ folder,
+- add a default.json file into the config/ folder
+- enter your server username and password
+- from the terminal, run `mysql -u root -p` followed by your password
+- once in the mysql terminal, run `source db/db.sql;` followed by `source db/schema.sql;` followed by `source db/seeds.sql`
+- enter `\q` to quit mysql
+- once back in the terminal, run `npm start` to run the application
 
 ## License
         
